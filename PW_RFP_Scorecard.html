@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PW eComm RFP Vendor Scorecard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f11;--surface:#17171a;--surface2:#1e1e22;--surface3:#252528;
+  --border:#2a2a30;--border2:#33333a;
+  --accent:#c8f169;--accent2:#6edcff;--accent3:#f0a050;
+  --text:#f0f0f2;--text2:#9090a0;--text3:#55555f;
+  --yes-bg:#1a2e12;--yes-fg:#7ecb52;
+  --no-bg:#2e1212;--no-fg:#d45c5c;
+  --pend-bg:#2a2510;--pend-fg:#c9a84c;
+  --blank-bg:#2a2a30;--blank-fg:#55555f;
+  --crit:#f0605a;--high:#f0a050;--med:#6edcff;
+  --r:8px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+/* ── LOADING ── */
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:999}
+.spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading p{font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)}
+/* ── HEADER ── */
+#app{display:none;flex-direction:column;height:100vh}
+.app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.app-header-left .eyebrow{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+.app-header-left h1{font-size:18px;font-weight:600;letter-spacing:-.02em}
+.header-right{display:flex;align-items:center;gap:16px}
+.save-indicator{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);min-width:80px;text-align:right;transition:color .2s}
+.save-indicator.saving{color:var(--accent)}
+.save-indicator.saved{color:var(--yes-fg)}
+/* ── TABS ── */
+.tab-nav{display:flex;gap:2px;padding:0 28px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.tab-btn{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:10px 18px;background:none;border:none;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.tab-btn:hover{color:var(--text2)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+/* ── CONTENT ── */
+.tab-content{display:none;flex:1;overflow-y:auto;padding:28px}
+.tab-content.active{display:block}
+/* ── SECTION TITLE ── */
+.section-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-bottom:14px}
+/* ── MATRIX TABLE ── */
+.matrix-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r);background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:700px}
+thead tr{background:var(--surface2);border-bottom:1px solid var(--border)}
+th{padding:11px 14px;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text2);font-family:'DM Mono',monospace;text-align:center;white-space:nowrap}
+th.left{text-align:left}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:rgba(255,255,255,.018)}
+td{padding:10px 14px;vertical-align:middle}
+td.phase-label{font-size:13px;color:var(--text);white-space:nowrap;min-width:200px}
+td.phase-label .num{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);display:block;margin-bottom:2px}
+td.center{text-align:center}
+/* ── STATUS BUTTON ── */
+.status-btn{display:inline-flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:11px;font-weight:500;padding:4px 10px;border-radius:5px;border:none;cursor:pointer;transition:all .12s;min-width:84px}
+.status-btn:hover{filter:brightness(1.2);transform:translateY(-1px)}
+.s-none{background:var(--blank-bg);color:var(--blank-fg)}
+.s-yes{background:var(--yes-bg);color:var(--yes-fg)}
+.s-no{background:var(--no-bg);color:var(--no-fg)}
+.s-pend{background:var(--pend-bg);color:var(--pend-fg)}
+/* ── GRADE INPUT ── */
+.grade-input{width:64px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--accent);font-family:'DM Mono',monospace;font-size:13px;font-weight:500;text-align:center;padding:5px 8px;outline:none;transition:border-color .13s}
+.grade-input:focus{border-color:var(--accent)}
+/* ── PROGRESS ── */
+.progress-section{margin-top:22px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px 24px}
+.bar-row{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+.bar-row:last-child{margin-bottom:0}
+.bar-label{width:100px;font-size:13px;font-weight:500;flex-shrink:0}
+.bar-track{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;background:var(--accent);transition:width .4s cubic-bezier(.4,0,.2,1)}
+.bar-score{font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);width:40px;text-align:right;flex-shrink:0}
+/* ── NOTES ── */
+.notes-section{margin-top:22px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px 24px}
+.notes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.note-card{display:flex;flex-direction:column;gap:5px}
+.note-vendor{font-family:'DM Mono',monospace;font-size:11px;color:var(--text2)}
+textarea.note-ta{background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;padding:8px 10px;resize:vertical;min-height:64px;outline:none;transition:border-color .13s;line-height:1.5}
+textarea.note-ta::placeholder{color:var(--text3)}
+textarea.note-ta:focus{border-color:var(--accent2)}
+/* ── WRITTEN SCORING ── */
+.cat-filter{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.cat-pill{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.05em;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .13s}
+.cat-pill:hover{border-color:var(--accent);color:var(--accent)}
+.cat-pill.active{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+/* ── SCORING TABLE ── */
+.scoring-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r);background:var(--surface)}
+.scoring-table{border-collapse:collapse;width:100%;min-width:900px}
+.scoring-table thead tr{background:var(--surface2);border-bottom:1px solid var(--border)}
+.scoring-table th{padding:10px 12px;font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text2);font-family:'DM Mono',monospace;text-align:center;white-space:nowrap}
+.scoring-table th.left{text-align:left}
+.scoring-table tbody tr{border-bottom:1px solid var(--border)}
+.scoring-table tbody tr:last-child{border-bottom:none}
+.scoring-table tbody tr:hover{background:rgba(255,255,255,.015)}
+.scoring-table td{padding:10px 12px;vertical-align:top}
+.q-cell{min-width:280px;max-width:380px}
+.q-id{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);margin-bottom:3px}
+.q-text{font-size:12px;color:var(--text);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+.q-text.expanded{-webkit-line-clamp:unset;overflow:visible}
+.q-evidence{font-size:11px;color:var(--text3);margin-top:4px;font-style:italic}
+/* ── PRIORITY BADGE ── */
+.pri-badge{display:inline-block;font-family:'DM Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.05em;padding:2px 7px;border-radius:4px;text-transform:uppercase}
+.pri-critical{background:rgba(240,96,90,.15);color:var(--crit)}
+.pri-high{background:rgba(240,160,80,.15);color:var(--high)}
+.pri-medium{background:rgba(110,220,255,.12);color:var(--med)}
+/* ── SCORE BUTTONS ── */
+.score-cell{text-align:center;min-width:80px;vertical-align:middle}
+.score-btns{display:flex;gap:3px;justify-content:center;flex-wrap:nowrap}
+.score-btn{width:22px;height:22px;border-radius:4px;border:1px solid var(--border2);background:var(--surface2);color:var(--text3);font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;transition:all .1s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.score-btn:hover{border-color:var(--text2);color:var(--text)}
+.score-btn.sel-1,.score-btn.sel-2{background:#2e1212;border-color:var(--no-fg);color:var(--no-fg)}
+.score-btn.sel-3{background:#1e2218;border-color:#8aad5a;color:#8aad5a}
+.score-btn.sel-4{background:#1a2e12;border-color:var(--yes-fg);color:var(--yes-fg)}
+.score-btn.sel-5{background:#183520;border-color:#a0f070;color:#a0f070}
+.score-btn.selected{font-weight:700}
+/* ── TOTALS ROW ── */
+tr.totals-row{background:var(--surface2);border-top:2px solid var(--border)}
+tr.totals-row td{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--accent)}
+tr.totals-row td.label{color:var(--text2);font-size:11px}
+/* ── LIVE SCORING ── */
+.live-intro{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;margin-bottom:20px;font-size:13px;color:var(--text2);line-height:1.6}
+.live-intro strong{color:var(--text)}
+/* ── VENDOR COMPARISON ── */
+.comparison-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:24px}
+.vendor-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
+.vc-name{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.vc-metric{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.vc-metric-label{font-size:12px;color:var(--text2)}
+.vc-metric-value{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--text)}
+.vc-final{font-family:'DM Mono',monospace;font-size:22px;font-weight:600;color:var(--accent);margin:14px 0 8px}
+.vc-status{display:inline-block;font-size:11px;padding:3px 10px;border-radius:4px;font-family:'DM Mono',monospace}
+.vc-rec{font-size:12px;color:var(--text2);margin-top:8px}
+.vc-rec-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:12px;padding:6px 8px;outline:none;margin-top:4px}
+.vc-rec-input:focus{border-color:var(--accent2)}
+.weight-row{display:flex;align-items:center;gap:12px;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 20px;font-size:13px;flex-wrap:wrap}
+.weight-row label{color:var(--text2);font-size:12px}
+.weight-input{width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--accent);font-family:'DM Mono',monospace;font-size:13px;text-align:center;padding:4px 6px;outline:none}
+.weight-input:focus{border-color:var(--accent)}
+.weight-note{font-size:11px;color:var(--text3);margin-left:auto;font-family:'DM Mono',monospace}
+/* ── DECLINED OVERLAY ── */
+.declined-overlay{position:relative}
+.declined-overlay::after{content:'DECLINED';position:absolute;inset:0;background:rgba(15,15,17,.6);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--no-fg);border-radius:4px;pointer-events:none}
+/* ── RUBRIC ── */
+.rubric{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.rubric-item{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:6px 12px;font-size:11px;display:flex;align-items:center;gap:6px}
+.rubric-num{font-family:'DM Mono',monospace;font-weight:600}
+.r5{color:#a0f070}.r4{color:var(--yes-fg)}.r3{color:#8aad5a}.r2{color:var(--pend-fg)}.r1{color:var(--no-fg)}
+/* ── README ── */
+.readme-wrap{max-width:960px}
+.readme-header{margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.readme-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px}
+.readme-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px}
+.readme-card-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+.readme-row{display:grid;grid-template-columns:140px 1fr;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.readme-row:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.readme-tab-name{font-size:12px;font-weight:500;color:var(--accent2);font-family:'DM Mono',monospace;padding-top:2px}
+.readme-tab-desc{font-size:12px;color:var(--text2);line-height:1.6}
+.readme-rubric-row{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
+.readme-rubric-row:last-child{margin-bottom:0}
+.readme-score{font-family:'DM Mono',monospace;font-size:16px;font-weight:700;width:22px;text-align:center;flex-shrink:0;padding-top:1px}
+.readme-score strong{display:block;font-size:12px;color:var(--text);font-weight:500;margin-bottom:2px}
+.readme-score-desc{font-size:11px;color:var(--text2);line-height:1.5}
+.readme-weight-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.readme-weight-row:last-child{margin-bottom:0}
+.readme-weight-desc{font-size:12px;color:var(--text2);line-height:1.5}
+.readme-protocol-row{display:grid;grid-template-columns:160px 1fr;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.readme-protocol-row:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.readme-protocol-label{font-size:11px;font-weight:500;color:var(--text);font-family:'DM Mono',monospace;padding-top:2px}
+.readme-protocol-desc{font-size:12px;color:var(--text2);line-height:1.5}
+.readme-doc-row{display:grid;grid-template-columns:200px 1fr;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.readme-doc-row:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.readme-doc-name{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent2);padding-top:2px}
+.readme-doc-desc{font-size:12px;color:var(--text2);line-height:1.5}
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div><p>Loading scorecard…</p></div>
+
+<div id="app">
+  <div class="app-header">
+    <div class="app-header-left">
+      <div class="eyebrow">Proven Winners · eComm RFP</div>
+      <h1>Vendor Scorecard</h1>
+    </div>
+    <div class="header-right">
+      <div class="save-indicator" id="save-ind">—</div>
+    </div>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="readme">Read Me</button>
+    <button class="tab-btn" data-tab="tracker">Completion Tracker</button>
+    <button class="tab-btn" data-tab="written">Written Scoring</button>
+    <button class="tab-btn" data-tab="live">Live Scoring</button>
+    <button class="tab-btn" data-tab="comparison">Vendor Comparison</button>
+  </div>
+
+  <!-- ═══════════ TAB 0: READ ME ═══════════ -->
+  <div class="tab-content active" id="tab-readme">
+    <div class="readme-wrap">
+      <div class="readme-header">
+        <div class="eyebrow" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:8px">Proven Winners · eComm RFP</div>
+        <h2 style="font-size:20px;font-weight:600;letter-spacing:-.02em;margin-bottom:4px">PW eComm RFP Vendor Scorecard</h2>
+        <p style="font-size:13px;color:var(--text2)">Combined Sites RFP — vendor evaluation and process tracking</p>
+        <p style="font-size:12px;color:var(--text3);margin-top:6px;font-family:'DM Mono',monospace">Owner: Mike Boswell, Sue Maliszewski &nbsp;·&nbsp; Shared — co-author in place</p>
+      </div>
+
+      <div class="readme-grid">
+        <!-- Sheets -->
+        <div class="readme-card">
+          <div class="readme-card-title">Tabs in this scorecard</div>
+          <div class="readme-row"><div class="readme-tab-name">Completion Tracker</div><div class="readme-tab-desc">Phase-by-phase status for each of the five vendors. Pick a status (— / ✓ Yes / ✗ No / ◎ Pending) from each cell for the seven RFP phases. Completion percentages and progress bars roll up automatically.</div></div>
+          <div class="readme-row"><div class="readme-tab-name">Written Scoring</div><div class="readme-tab-desc">Score each vendor against the 51 RFP questions. Critical questions weight 3×, High 2×, Medium 1×. Filter by category. Weighted averages calculate automatically.</div></div>
+          <div class="readme-row"><div class="readme-tab-name">Live Scoring</div><div class="readme-tab-desc">Score the finalist live presentation against six dimensions. Used for the second round only. All dimensions weight equally.</div></div>
+          <div class="readme-row"><div class="readme-tab-name">Vendor Comparison</div><div class="readme-tab-desc">Auto-rolled summary of written grade, live grade, and weighted final grade. Weights are editable (default: written 60%, live 40%). Read-only calculations — inputs are status and recommendation fields only.</div></div>
+        </div>
+
+        <!-- Scoring rubric -->
+        <div class="readme-card">
+          <div class="readme-card-title">Scoring rubric — apply consistently across written and live</div>
+          <div class="readme-rubric-row"><span class="readme-score r5">5</span><div><strong>Exceptional</strong><div class="readme-score-desc">Best-in-class answer, evidence is specific and verifiable, exceeds expectations.</div></div></div>
+          <div class="readme-rubric-row"><span class="readme-score r4">4</span><div><strong>Strong</strong><div class="readme-score-desc">Clearly exceeds expectations, minor gaps.</div></div></div>
+          <div class="readme-rubric-row"><span class="readme-score r3">3</span><div><strong>Meets expectations</strong><div class="readme-score-desc">Adequate, addresses the question, no major concerns.</div></div></div>
+          <div class="readme-rubric-row"><span class="readme-score r2">2</span><div><strong>Below expectations</strong><div class="readme-score-desc">Partial answer, gaps in evidence, raises concerns.</div></div></div>
+          <div class="readme-rubric-row"><span class="readme-score r1">1</span><div><strong>Inadequate</strong><div class="readme-score-desc">Does not address the question, missing evidence, or contradicts requirements.</div></div></div>
+          <div class="readme-rubric-row"><span class="readme-score" style="color:var(--text3)">—</span><div><strong style="color:var(--text2)">Blank / unscored</strong><div class="readme-score-desc">Treated as zero in the weighted average. Leaving blank lowers the vendor score — score every question.</div></div></div>
+        </div>
+
+        <!-- Priority weights -->
+        <div class="readme-card">
+          <div class="readme-card-title">Priority weights</div>
+          <div class="readme-weight-row"><span class="pri-badge pri-critical">Critical ×3</span><span class="readme-weight-desc">Must-haves. A weak Critical answer is grounds for elimination.</span></div>
+          <div class="readme-weight-row"><span class="pri-badge pri-high">High ×2</span><span class="readme-weight-desc">Important. Material to delivery success.</span></div>
+          <div class="readme-weight-row"><span class="pri-badge pri-medium">Medium ×1</span><span class="readme-weight-desc">Useful context, lower decision weight.</span></div>
+        </div>
+
+        <!-- Sharing protocol -->
+        <div class="readme-card">
+          <div class="readme-card-title">Sharing and editing protocol</div>
+          <div class="readme-protocol-row"><div class="readme-protocol-label">Shared access</div><div class="readme-protocol-desc">All data saves to shared cloud storage. Changes made by any scorer are visible to all others in real time.</div></div>
+          <div class="readme-protocol-row"><div class="readme-protocol-label">One scorer per vendor column</div><div class="readme-protocol-desc">Avoid simultaneous edits to the same vendor column. Coordinate via Teams or Slack to prevent overwrites (last write wins).</div></div>
+          <div class="readme-protocol-row"><div class="readme-protocol-label">Use Notes columns for caveats</div><div class="readme-protocol-desc">If your score depends on a clarification or assumption, write it in the Notes column rather than discounting silently.</div></div>
+          <div class="readme-protocol-row"><div class="readme-protocol-label">Final grades are consensus</div><div class="readme-protocol-desc">Use Notes to log dissent. The final grade is what the team agrees to in the wash-up call.</div></div>
+        </div>
+
+        <!-- Source docs -->
+        <div class="readme-card">
+          <div class="readme-card-title">Source documents</div>
+          <div class="readme-doc-row"><span class="readme-doc-name">PW_RFP_Questions_v4.xlsx</span><span class="readme-doc-desc">Source of the 51 questions, categories, and priorities. Do not edit here — edit the source file.</span></div>
+          <div class="readme-doc-row"><span class="readme-doc-name">PW_Combined_Sites_RFP_v3.docx</span><span class="readme-doc-desc">Narrative RFP document given to vendors.</span></div>
+          <div class="readme-doc-row"><span class="readme-doc-name">Vendor proposals</span><span class="readme-doc-desc">Saved per vendor in eCommerce Integration / Vendor Responses /.</span></div>
+        </div>
+
+        <!-- Status legend -->
+        <div class="readme-card">
+          <div class="readme-card-title">Status legend (Completion Tracker)</div>
+          <div class="readme-weight-row"><span class="status-btn s-none" style="pointer-events:none;min-width:90px">—</span><span class="readme-weight-desc">Not started or not applicable</span></div>
+          <div class="readme-weight-row"><span class="status-btn s-yes" style="pointer-events:none;min-width:90px">✓ Yes</span><span class="readme-weight-desc">Complete or confirmed</span></div>
+          <div class="readme-weight-row"><span class="status-btn s-no" style="pointer-events:none;min-width:90px">✗ No</span><span class="readme-weight-desc">Declined or not proceeding</span></div>
+          <div class="readme-weight-row"><span class="status-btn s-pend" style="pointer-events:none;min-width:90px">◎ Pending</span><span class="readme-weight-desc">In progress or awaiting</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ TAB 1: COMPLETION TRACKER ═══════════ -->
+  <div class="tab-content" id="tab-tracker">
+    <div class="section-title">Phase-by-phase status — select a status from each cell</div>
+    <div class="matrix-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="left" style="min-width:200px">Phase</th>
+            <th>CQL</th><th>Codal</th><th>Ethercycle</th><th>Basso</th><th>emfluence</th>
+          </tr>
+        </thead>
+        <tbody id="tracker-body"></tbody>
+      </table>
+    </div>
+    <div class="progress-section">
+      <div class="section-title">Completion score (phases confirmed ✓ / 7)</div>
+      <div id="progress-bars"></div>
+    </div>
+    <div class="notes-section">
+      <div class="section-title">Vendor notes</div>
+      <div class="notes-grid" id="tracker-notes"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ TAB 2: WRITTEN SCORING ═══════════ -->
+  <div class="tab-content" id="tab-written">
+    <div class="rubric">
+      <div class="rubric-item"><span class="rubric-num r5">5</span><span style="color:var(--text2)">Exceptional</span></div>
+      <div class="rubric-item"><span class="rubric-num r4">4</span><span style="color:var(--text2)">Strong</span></div>
+      <div class="rubric-item"><span class="rubric-num r3">3</span><span style="color:var(--text2)">Meets expectations</span></div>
+      <div class="rubric-item"><span class="rubric-num r2">2</span><span style="color:var(--text2)">Below expectations</span></div>
+      <div class="rubric-item"><span class="rubric-num r1">1</span><span style="color:var(--text2)">Inadequate</span></div>
+      <div class="rubric-item"><span style="color:var(--text3);font-size:11px">Blank = unscored (treated as 0)</span></div>
+    </div>
+    <div class="cat-filter" id="cat-filter"></div>
+    <div class="scoring-wrap">
+      <table class="scoring-table">
+        <thead>
+          <tr>
+            <th class="left">Question</th>
+            <th>Priority</th>
+            <th>CQL</th><th>Codal</th><th>Ethercycle</th><th>Basso</th><th>emfluence</th>
+            <th class="left" style="min-width:120px">Notes</th>
+          </tr>
+        </thead>
+        <tbody id="scoring-body"></tbody>
+        <tfoot id="scoring-foot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════ TAB 3: LIVE SCORING ═══════════ -->
+  <div class="tab-content" id="tab-live">
+    <div class="live-intro">
+      <strong>Finalist round only.</strong> Score 1–5 across the six dimensions below. All dimensions weight equally. Click the question text to expand. Live score currently weights <strong id="live-weight-display">40%</strong> of the final grade (editable in Vendor Comparison).
+    </div>
+    <div class="scoring-wrap">
+      <table class="scoring-table">
+        <thead>
+          <tr>
+            <th class="left">Dimension</th>
+            <th class="left">What we are testing</th>
+            <th>CQL</th><th>Codal</th><th>Ethercycle</th><th>Basso</th><th>emfluence</th>
+            <th class="left" style="min-width:120px">Notes</th>
+          </tr>
+        </thead>
+        <tbody id="live-body"></tbody>
+        <tfoot id="live-foot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════ TAB 4: VENDOR COMPARISON ═══════════ -->
+  <div class="tab-content" id="tab-comparison">
+    <div class="weight-row">
+      <label>Written weight</label>
+      <input class="weight-input" id="w-written" type="number" min="0" max="1" step="0.05" value="0.6">
+      <label>Live weight</label>
+      <input class="weight-input" id="w-live" type="number" min="0" max="1" step="0.05" value="0.4">
+      <span class="weight-note" id="weight-note">✓ Weights sum to 1.00</span>
+    </div>
+    <div class="comparison-grid" id="comparison-grid"></div>
+    <div class="section-title" style="margin-top:8px">Full breakdown</div>
+    <div class="matrix-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="left">Vendor</th>
+            <th>Critical avg</th>
+            <th>Written avg</th>
+            <th>Live avg</th>
+            <th>Final grade</th>
+            <th>Qs scored</th>
+            <th class="left">Status</th>
+            <th class="left" style="min-width:160px">Recommendation</th>
+          </tr>
+        </thead>
+        <tbody id="comparison-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div><!-- #app -->
+
+<script>
+// ══════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════
+const VENDORS = ['CQL','Codal','Ethercycle','Basso','emfluence'];
+
+const PHASES = [
+  {id:'ack',   num:'Phase 01', label:'RFP Acknowledgement'},
+  {id:'qrec',  num:'Phase 02', label:'Questions Received'},
+  {id:'resp',  num:'Phase 03', label:'Responses Received'},
+  {id:'grade', num:'Phase 04', label:'Responses Graded'},
+  {id:'price', num:'Phase 05', label:'Commercial / Pricing Review'},
+  {id:'pres',  num:'Phase 06', label:'Presentations Held'},
+  {id:'ref',   num:'Phase 07', label:'References Contacted'},
+];
+
+const QUESTIONS = [
+  {id:'Q01',cat:'Program Fit & Blueprint',pri:'Critical',w:3,q:"What is your recommended architecture for the final-state ecosystem: Shopify-only, Shopify + WordPress, or another approach? Why is it the best fit for Proven Winners' specific consumer and pros use cases across all three phases?",ev:'Written narrative + diagram'},
+  {id:'Q02',cat:'Program Fit & Blueprint',pri:'Critical',w:3,q:"What would you deliver in a 2-3 week blueprint phase immediately after award, and exactly what decisions would it lock down for Phase 1, Phase 2, and Phase 3 delivery?",ev:'Blueprint workplan + sample outputs'},
+  {id:'Q03',cat:'Program Fit & Blueprint',pri:'Critical',w:3,q:"Based on what you know today, what are the top risks to hitting the mid-July (Phase 1), September (Phase 2), and November 1 (Phase 3) deadlines, and how would you de-risk them immediately?",ev:'Risk register per phase'},
+  {id:'Q04',cat:'Program Fit & Blueprint',pri:'High',w:2,q:"Walk us through how you would staff, sequence, and manage delivery across all three phases so that Phase 1 execution does not compress Phase 2 build time, and Phase 2 does not compress the November 1 Phase 3 deadline.",ev:'Phase delivery plan + resource model'},
+  {id:'Q05',cat:'Program Fit & Blueprint',pri:'High',w:2,q:"Beyond the proposed team named in your Credentials tab, who else would be on the day-to-day team, what percentage of their time is committed, and who is accountable for UX, technical lead, integration, SEO, and Phase 1 migration?",ev:'Full team roster by phase, % allocation'},
+  {id:'Q06',cat:'Shopify / Commerce',pri:'Critical',w:3,q:"Describe your deepest Shopify implementations that combined content-rich discovery journeys with high-performing DTC checkout.",ev:'Case studies + references'},
+  {id:'Q07',cat:'Shopify / Commerce',pri:'Critical',w:3,q:"How would you implement the Phase 3 consumer experience on www.provenwinners.com — combining Shop, Learn, and Inspire sections — while maintaining strong discovery content and seasonal merchandising?",ev:'Architecture + UX approach'},
+  {id:'Q08',cat:'Shopify / Commerce',pri:'High',w:2,q:"How would you structure product discovery, search, filtering, seasonal content, bundles, and merchandising for live-goods shopping? How would you improve conversion rate, AOV, load times, and user satisfaction?",ev:'Functional solution'},
+  {id:'Q09',cat:'Shopify / Commerce',pri:'High',w:2,q:"What native Shopify capabilities would you use versus apps versus custom development, and why?",ev:'Capability map'},
+  {id:'Q10',cat:'Shopify / Commerce',pri:'High',w:2,q:"How would you handle environments, releases, QA, rollback, and post-launch support for a seasonal commerce business across three phase launches?",ev:'Delivery methodology'},
+  {id:'Q11',cat:'B2B / Pros Experience',pri:'Critical',w:3,q:"How would you design pros.provenwinners.com (Phase 2) so it feels purpose-built for professionals — retailers, growers, IGCs, landscapers — while remaining clearly connected to the consumer brand?",ev:'UX narrative + sitemap'},
+  {id:'Q12',cat:'B2B / Pros Experience',pri:'Critical',w:3,q:"What are the most important capabilities you would include for professional users at Phase 2 launch?",ev:'Prioritized feature list'},
+  {id:'Q13',cat:'B2B / Pros Experience',pri:'High',w:2,q:"How would you support role-specific journeys for growers, retailers, IGCs, landscapers, breeders, and internal sales and program teams?",ev:'User-journey framework'},
+  {id:'Q14',cat:'B2B / Pros Experience',pri:'High',w:2,q:"How would you connect B2B content and calls to action with sales-assisted processes, retailer programs, CONNECT+ enrollment, and ordering handoffs?",ev:'Workflow design'},
+  {id:'Q15',cat:'B2B / Pros Experience',pri:'Medium',w:1,q:"What content governance model would you recommend for keeping pros content current, useful, and easy to maintain internally after Phase 2 launch?",ev:'Governance recommendation'},
+  {id:'Q16',cat:'Drupal / WordPress / Migration',pri:'Critical',w:3,q:"Describe your experience migrating from Drupal, including content modeling, redirect mapping, QA, and preserving search authority.",ev:'Relevant case studies'},
+  {id:'Q17',cat:'Drupal / WordPress / Migration',pri:'High',w:2,q:"If you recommend WordPress for portions of the experience, how would you govern the split between Shopify and WordPress without creating another fragmented ecosystem?",ev:'Decision framework'},
+  {id:'Q18',cat:'Drupal / WordPress / Migration',pri:'High',w:2,q:"How would you migrate or retire content from provenwinners.com (Drupal), provenwinnersdirect.com (Shopify), pwfourstar.com, and pwpvg.com in a controlled way across all three phases?",ev:'Migration and retirement method by phase'},
+  {id:'Q19',cat:'Drupal / WordPress / Migration',pri:'High',w:2,q:"How would you validate page-level mapping, preferred pages, and redirect logic before each phase launch?",ev:'QA method'},
+  {id:'Q20',cat:'Drupal / WordPress / Migration',pri:'Medium',w:1,q:"How would you handle legacy content that should not move but still has inbound traffic or SEO equity?",ev:'Retirement / redirect policy'},
+  {id:'Q21',cat:'ERP / Data / Integration',pri:'Critical',w:3,q:"Describe your approach to integrating with smaller or less-modern ERP environments such as PICAS, including examples of XML, flat-file, batch, or custom API patterns.",ev:'Integration case studies'},
+  {id:'Q22',cat:'ERP / Data / Integration',pri:'Critical',w:3,q:"What data domains would you integrate at each phase launch versus defer (inventory, pricing, catalog, orders, customer/account data, fulfillment, promotions)?",ev:'Data-domain plan by phase'},
+  {id:'Q23',cat:'ERP / Data / Integration',pri:'High',w:2,q:"How would you design for reliability, exception handling, and reconciliation when upstream systems are imperfect or delayed?",ev:'Control framework'},
+  {id:'Q24',cat:'ERP / Data / Integration',pri:'High',w:2,q:"What admin tools, alerts, and audit trails would internal teams have to monitor integrations and resolve issues quickly?",ev:'Admin / support model'},
+  {id:'Q25',cat:'ERP / Data / Integration',pri:'Medium',w:1,q:"What would your security, privacy, and access-control model look like across systems, environments, and vendor support access?",ev:'Security overview'},
+  {id:'Q26',cat:'SEO / Analytics / Performance',pri:'Critical',w:3,q:"How would you protect rankings, paid-media continuity, and analytics continuity across three phase migrations, including domain and subdomain changes at each phase?",ev:'SEO + analytics migration plan by phase'},
+  {id:'Q27',cat:'SEO / Analytics / Performance',pri:'Critical',w:3,q:"What redirect strategy would you use, how would you validate it, and how would you monitor 404s, crawl errors, indexation, and campaign performance after each phase launch?",ev:'Redirect + monitoring plan'},
+  {id:'Q28',cat:'SEO / Analytics / Performance',pri:'High',w:2,q:"Which KPIs and dashboards would you stand up before each phase launch, and what would the executive team, ecommerce team, and B2B stakeholders each see?",ev:'Dashboard examples'},
+  {id:'Q29',cat:'SEO / Analytics / Performance',pri:'High',w:2,q:"How would you define event taxonomy, source attribution, and cross-site or cross-subdomain reporting to avoid fragmented data across consumer and pros sites?",ev:'Measurement framework'},
+  {id:'Q30',cat:'SEO / Analytics / Performance',pri:'High',w:2,q:"What performance standards would you commit to for mobile UX and Core Web Vitals at each phase launch, and how would you test them?",ev:'Performance SLAs'},
+  {id:'Q31',cat:'SEO / Analytics / Performance',pri:'Medium',w:1,q:"How would you approach accessibility, site search relevance, and search quality as part of the launch scope for each phase?",ev:'QA checklist'},
+  {id:'Q32',cat:'Operating Model / Support',pri:'Critical',w:3,q:"What internal roles would you expect Proven Winners to provide weekly during blueprint, build, content migration, QA, and each phase launch?",ev:'RACI / cadence'},
+  {id:'Q33',cat:'Operating Model / Support',pri:'High',w:2,q:"What meeting cadence and artifacts would you run: weekly workstream, decision log, risk log, sprint review, executive steering?",ev:'Governance sample'},
+  {id:'Q34',cat:'Operating Model / Support',pri:'High',w:2,q:"What does post-launch support include at each phase, how long is hypercare, and what SLAs and staffing would you provide?",ev:'Support model by phase'},
+  {id:'Q35',cat:'Operating Model / Support',pri:'High',w:2,q:"How would you train internal teams for content authoring, merchandising, site admin, analytics, and support operations at each phase?",ev:'Training plan'},
+  {id:'Q36',cat:'Operating Model / Support',pri:'Medium',w:1,q:"Provide a detailed pricing structure broken out by phase: Phase 1 migration/retirements, Phase 2 B2B Shopify build, Phase 3 B2C unified build, plus QA, launch, hypercare, and ongoing support. What assumptions could materially change cost?",ev:'Detailed cost model by phase'},
+  {id:'Q37',cat:'Operating Model / Support',pri:'Medium',w:1,q:"Beyond the reference provided in your Credentials tab, provide written case detail on 1-2 engagements that best demonstrate your fit for this program: platform, scope, challenges, measurable outcomes.",ev:'Written case studies (not just logos)'},
+  {id:'Q38',cat:'Phased Delivery',pri:'Critical',w:3,q:"Phase 1 is a content migration and site retirement on the existing Drupal infrastructure — not a platform build. Proven Winners has internal Drupal resources to support this work. How would you structure your Phase 1 involvement, and how does your pricing reflect internal resource support?",ev:'Phase 1 delivery model, pricing adjustment rationale'},
+  {id:'Q39',cat:'Phased Delivery',pri:'High',w:2,q:"What are the critical-path dependencies between Phase 1 (Drupal/legacy retirement) and Phase 2 (Shopify B2B build)? How do you prevent Phase 1 execution from compressing Phase 2 design and build time?",ev:'Dependency map, resource model'},
+  {id:'Q40',cat:'Phased Delivery',pri:'High',w:2,q:"How would you approach a scenario where Phase 2 (September) is at risk of delay? What would you cut, defer, or restructure to protect the November 1 Phase 3 deadline?",ev:'Risk and contingency framework'},
+  {id:'Q41',cat:'Phase 1: Legacy Retirements',pri:'Critical',w:3,q:"Two legacy trade sites — pwfourstar.com and pwpvg.com — will be retired in Phase 1. The Basso audit will deliver a full content map and redirect recommendations before your engagement begins. How would you take handoff from the Basso audit and execute the migration and redirect strategy by mid-July?",ev:'Handoff process, migration execution plan, timeline commitment'},
+  {id:'Q42',cat:'Phase 1: Legacy Retirements',pri:'Critical',w:3,q:"Phase 1 consolidates pwfourstar.com and pwpvg.com into the current provenwinners.com /professionals section on Drupal — not a new platform. How would you validate that all high-value content has been migrated and all redirects are correct before domain retirement?",ev:'Migration QA method, redirect validation, post-retirement monitoring'},
+  {id:'Q43',cat:'Phase 1: Legacy Retirements',pri:'High',w:2,q:"What is your approach to content that is outdated, duplicated, or has no direct equivalent on provenwinners.com? How do you decide what to archive, redirect to a category page, or migrate 1:1?",ev:'Content rationalization framework, decision criteria'},
+  {id:'Q44',cat:'Basso Audit Integration',pri:'High',w:2,q:"A pre-project audit by Basso Marketing Agency — covering professional section UX and IA, consumer tool engagement, and Shopify CRO — will be completed before your engagement begins. How would you incorporate Basso audit outputs into your blueprint and IA design process?",ev:'Audit integration approach, effect on discovery phase'},
+  {id:'Q45',cat:'Basso Audit Integration',pri:'Medium',w:1,q:"The Basso audit includes a recommendation on whether the Container Recipe Search and Idea Boards should be natively rebuilt in Shopify or retained on a content layer. How would you evaluate that recommendation, and what factors would cause you to agree or disagree?",ev:'Evaluation criteria, recommendation approach'},
+  {id:'Q46',cat:'Account Managed Services',pri:'Critical',w:3,q:"Describe your Account Managed Services offering for post-launch engagements. What does a typical AMS engagement include — content operations, platform health, CRO, enhancements, campaign support — and how are hours allocated and tracked?",ev:'AMS scope, staffing model, example AMS SOW or case study'},
+  {id:'Q47',cat:'Account Managed Services',pri:'Critical',w:3,q:"What SLA tiers do you offer for AMS engagements? Describe response time commitments for critical issues, enhancement requests, and content operations. How do you handle surge capacity for seasonal launches or new variety releases?",ev:'SLA documentation, surge capacity model'},
+  {id:'Q48',cat:'Account Managed Services',pri:'High',w:2,q:"Provide example AMS pricing models across a range: from a light retainer (platform health and bug fixes) to a full-service engagement (content, CRO, campaigns, enhancements). Show us what different budget levels buy.",ev:'Tiered AMS pricing examples'},
+  {id:'Q49',cat:'Account Managed Services',pri:'High',w:2,q:"How do you structure the transition from a project engagement to AMS? Who from the build team carries over, how is institutional knowledge documented, and how do you ensure continuity after hypercare ends?",ev:'Transition model, knowledge transfer process'},
+  {id:'Q50',cat:'Internal Resource Coordination',pri:'High',w:2,q:"Proven Winners has internal Drupal expertise available to support migration and redirect work, particularly in Phase 1. How do you prefer to work alongside internal technical teams? What coordination model and documentation standards do you use?",ev:'Internal resource integration model'},
+  {id:'Q51',cat:'Internal Resource Coordination',pri:'Medium',w:1,q:"Where would you rely on Proven Winners' internal Drupal resources versus providing your own? Be specific about Phase 1, Phase 2, and Phase 3 scope, and reflect this in your cost model.",ev:'Resource responsibility matrix by phase, cost impact'},
+];
+
+const LIVE_DIMS = [
+  {id:'understanding', label:'Program understanding',    test:"Did they show they understand the three-phase plan, the November 1 hard deadline, and PW's structural realities?"},
+  {id:'architecture',  label:'Solution architecture',    test:"Quality of the recommended Shopify / WordPress / data architecture. Specific, defensible, fits PW's case."},
+  {id:'team',          label:'Team and delivery model',  test:"Strength of the named team, allocation, and how they will run all three phases without compression."},
+  {id:'phase1',        label:'Phase 1 plan & risk',      test:"Concrete plan to retire pwfourstar.com and pwpvg.com on schedule with clean redirects and SEO continuity."},
+  {id:'commercial',    label:'Commercial proposal',      test:"Clarity and reasonableness of the phased cost model, AMS options, and value vs. risk."},
+  {id:'culture',       label:'Cultural fit & communication', test:"How they handled questions, transparency, ability to push back constructively, fit with PW and SSC working style."},
+];
+
+const STATUSES=['none','yes','no','pend'];
+const STATUS_LABELS={none:'—',yes:'✓ Yes',no:'✗ No',pend:'◎ Pending'};
+const STATUS_CLS={none:'s-none',yes:'s-yes',no:'s-no',pend:'s-pend'};
+const STORAGE_KEY='pw-rfp-scorecard-v1';
+
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+let D = {
+  tracker:{},   // {phaseId:{vendor:status}}
+  grades:{},    // {vendor:string}
+  notes:{},     // {vendor:string}
+  written:{},   // {qId:{vendor:score (1-5 or null)}}
+  writtenNotes:{}, // {qId:string}
+  live:{},      // {dimId:{vendor:score}}
+  liveNotes:{}, // {dimId:string}
+  vcStatus:{},  // {vendor:string}
+  vcRec:{},     // {vendor:string}
+  wWritten:0.6,
+  wLive:0.4,
+  updatedAt:null
+};
+let saveTimer=null;
+let activeCat='All';
+
+// ══════════════════════════════════════
+//  STORAGE
+// ══════════════════════════════════════
+async function loadData(){
+  try{
+    const res=await window.storage.get(STORAGE_KEY,true);
+    if(res&&res.value){
+      const saved=JSON.parse(res.value);
+      D={...D,...saved};
+    }
+  }catch(e){}
+}
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  setSaveInd('saving','Saving…');
+  saveTimer=setTimeout(async()=>{
+    D.updatedAt=new Date().toISOString();
+    try{
+      await window.storage.set(STORAGE_KEY,JSON.stringify(D),true);
+      setSaveInd('saved','Saved ✓');
+      setTimeout(()=>setSaveInd('','—'),2000);
+    }catch(e){setSaveInd('','Save failed')}
+  },700);
+}
+function setSaveInd(cls,txt){
+  const el=document.getElementById('save-ind');
+  el.className='save-indicator'+( cls?' '+cls:'');
+  el.textContent=txt;
+}
+
+// ══════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════
+function trackerStatus(pid,v){return((D.tracker[pid]||{})[v])||'none'}
+function setTrackerStatus(pid,v,s){if(!D.tracker[pid])D.tracker[pid]={};D.tracker[pid][v]=s}
+function writtenScore(qid,v){return((D.written[qid]||{})[v])||null}
+function setWrittenScore(qid,v,s){if(!D.written[qid])D.written[qid]={};D.written[qid][v]=s}
+function liveScore(did,v){return((D.live[did]||{})[v])||null}
+function setLiveScore(did,v,s){if(!D.live[did])D.live[did]={};D.live[did][v]=s}
+
+function calcWritten(vendor){
+  let wTotal=0,wMax=0,critTotal=0,critMax=0,scored=0;
+  QUESTIONS.forEach(q=>{
+    const s=writtenScore(q.id,vendor);
+    if(s!==null){wTotal+=s*q.w;wMax+=q.w;scored++;if(q.pri==='Critical'){critTotal+=s*q.w;critMax+=q.w}}
+  });
+  return{
+    avg:wMax>0?wTotal/wMax:null,
+    critAvg:critMax>0?critTotal/critMax:null,
+    scored
+  };
+}
+function calcLive(vendor){
+  let total=0,count=0;
+  LIVE_DIMS.forEach(d=>{const s=liveScore(d.id,vendor);if(s!==null){total+=s;count++}});
+  return count>0?total/count:null;
+}
+function fmt(n,dec=2){return n===null||n===undefined?'—':(+n).toFixed(dec)}
+
+// ══════════════════════════════════════
+//  BUILD TRACKER
+// ══════════════════════════════════════
+function buildTracker(){
+  const tbody=document.getElementById('tracker-body');
+  tbody.innerHTML='';
+  PHASES.forEach(ph=>{
+    const tr=document.createElement('tr');
+    const tdL=document.createElement('td');tdL.className='phase-label';
+    tdL.innerHTML=`<span class="num">${ph.num}</span>${ph.label}`;tr.appendChild(tdL);
+    VENDORS.forEach(v=>{
+      const td=document.createElement('td');td.className='center';
+      const st=trackerStatus(ph.id,v);
+      const btn=document.createElement('button');
+      btn.className='status-btn '+STATUS_CLS[st];
+      btn.textContent=STATUS_LABELS[st];
+      btn.onclick=()=>{
+        const cur=trackerStatus(ph.id,v);
+        const next=STATUSES[(STATUSES.indexOf(cur)+1)%STATUSES.length];
+        setTrackerStatus(ph.id,v,next);
+        btn.className='status-btn '+STATUS_CLS[next];
+        btn.textContent=STATUS_LABELS[next];
+        updateProgress();scheduleSave();updateComparison();
+      };
+      td.appendChild(btn);tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  // Grade row
+  const gradeRow=document.createElement('tr');
+  gradeRow.style.background='var(--surface2)';gradeRow.style.borderTop='2px solid var(--border)';
+  const gdL=document.createElement('td');gdL.className='phase-label';
+  gdL.innerHTML='<span class="num">Final</span>Overall Grade';gradeRow.appendChild(gdL);
+  VENDORS.forEach(v=>{
+    const td=document.createElement('td');td.className='center';
+    const inp=document.createElement('input');inp.className='grade-input';
+    inp.type='text';inp.placeholder='—';inp.maxLength=6;
+    inp.value=D.grades[v]||'';
+    inp.addEventListener('input',()=>{D.grades[v]=inp.value;scheduleSave()});
+    td.appendChild(inp);gradeRow.appendChild(td);
+  });
+  tbody.appendChild(gradeRow);
+}
+function updateProgress(){
+  const el=document.getElementById('progress-bars');el.innerHTML='';
+  VENDORS.forEach(v=>{
+    const done=PHASES.filter(p=>trackerStatus(p.id,v)==='yes').length;
+    const pct=Math.round(done/PHASES.length*100);
+    const row=document.createElement('div');row.className='bar-row';
+    row.innerHTML=`<div class="bar-label">${v}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><div class="bar-score">${done}/7</div>`;
+    el.appendChild(row);
+  });
+}
+function buildTrackerNotes(){
+  const grid=document.getElementById('tracker-notes');grid.innerHTML='';
+  VENDORS.forEach(v=>{
+    const card=document.createElement('div');card.className='note-card';
+    const lbl=document.createElement('div');lbl.className='note-vendor';lbl.textContent=v;
+    const ta=document.createElement('textarea');ta.className='note-ta';
+    ta.placeholder='Add notes…';ta.value=D.notes[v]||'';
+    ta.addEventListener('input',()=>{D.notes[v]=ta.value;scheduleSave()});
+    card.appendChild(lbl);card.appendChild(ta);grid.appendChild(card);
+  });
+}
+
+// ══════════════════════════════════════
+//  BUILD CATEGORY FILTER
+// ══════════════════════════════════════
+function buildCatFilter(){
+  const cats=['All',...new Set(QUESTIONS.map(q=>q.cat))];
+  const el=document.getElementById('cat-filter');el.innerHTML='';
+  cats.forEach(c=>{
+    const btn=document.createElement('button');btn.className='cat-pill'+(c===activeCat?' active':'');
+    btn.textContent=c==='All'?`All (${QUESTIONS.length})`:c;
+    btn.onclick=()=>{activeCat=c;buildCatFilter();buildScoringTable()};
+    el.appendChild(btn);
+  });
+}
+
+// ══════════════════════════════════════
+//  BUILD SCORING TABLE
+// ══════════════════════════════════════
+function scoreBtn(qid,vendor,score){
+  const cur=writtenScore(qid,vendor);
+  const btn=document.createElement('button');
+  btn.className='score-btn'+(cur===score?' selected sel-'+score:'');
+  btn.textContent=score;
+  btn.onclick=()=>{
+    const prev=writtenScore(qid,vendor);
+    const next=prev===score?null:score;
+    setWrittenScore(qid,vendor,next);
+    // re-render just this vendor's score cell
+    const cell=document.getElementById(`sc-${qid}-${vendor.replace(' ','_')}`);
+    if(cell){cell.innerHTML='';cell.appendChild(makeScoreCell(qid,vendor))}
+    updateScoringFooter();scheduleSave();updateComparison();
+  };
+  return btn;
+}
+function makeScoreCell(qid,vendor){
+  const wrap=document.createElement('div');wrap.className='score-btns';
+  [1,2,3,4,5].forEach(n=>wrap.appendChild(scoreBtn(qid,vendor,n)));
+  return wrap;
+}
+function buildScoringTable(){
+  const tbody=document.getElementById('scoring-body');tbody.innerHTML='';
+  const qs=activeCat==='All'?QUESTIONS:QUESTIONS.filter(q=>q.cat===activeCat);
+  qs.forEach(q=>{
+    const tr=document.createElement('tr');
+    // Question cell
+    const tdQ=document.createElement('td');tdQ.className='q-cell';
+    const qid=document.createElement('div');qid.className='q-id';qid.textContent=q.id;
+    const qtxt=document.createElement('div');qtxt.className='q-text';qtxt.textContent=q.q;
+    qtxt.title='Click to expand';
+    qtxt.onclick=()=>qtxt.classList.toggle('expanded');
+    const qev=document.createElement('div');qev.className='q-evidence';qev.textContent='↳ '+q.ev;
+    tdQ.appendChild(qid);tdQ.appendChild(qtxt);tdQ.appendChild(qev);tr.appendChild(tdQ);
+    // Priority
+    const tdP=document.createElement('td');tdP.style.textAlign='center';tdP.style.verticalAlign='middle';
+    const badge=document.createElement('span');
+    badge.className='pri-badge pri-'+q.pri.toLowerCase();
+    badge.textContent=q.pri+' ×'+q.w;
+    tdP.appendChild(badge);tr.appendChild(tdP);
+    // Score cells
+    VENDORS.forEach(v=>{
+      const td=document.createElement('td');td.className='score-cell';
+      td.id=`sc-${q.id}-${v.replace(' ','_')}`;
+      td.appendChild(makeScoreCell(q.id,v));tr.appendChild(td);
+    });
+    // Notes
+    const tdN=document.createElement('td');
+    const ta=document.createElement('textarea');ta.className='note-ta';ta.style.minHeight='48px';
+    ta.placeholder='Notes…';ta.value=D.writtenNotes[q.id]||'';
+    ta.addEventListener('input',()=>{D.writtenNotes[q.id]=ta.value;scheduleSave()});
+    tdN.appendChild(ta);tr.appendChild(tdN);
+    tbody.appendChild(tr);
+  });
+  updateScoringFooter();
+}
+function updateScoringFooter(){
+  const tfoot=document.getElementById('scoring-foot');tfoot.innerHTML='';
+  const metrics=[
+    {label:'Weighted avg (1–5)', fn:v=>fmt(calcWritten(v).avg)},
+    {label:'Critical-only avg',  fn:v=>fmt(calcWritten(v).critAvg)},
+    {label:'Questions scored',   fn:v=>String(calcWritten(v).scored)},
+  ];
+  metrics.forEach(m=>{
+    const tr=document.createElement('tr');tr.className='totals-row';
+    const tdL=document.createElement('td');tdL.className='label';tdL.colSpan=2;tdL.textContent=m.label;tr.appendChild(tdL);
+    VENDORS.forEach(v=>{
+      const td=document.createElement('td');td.style.textAlign='center';td.textContent=m.fn(v);tr.appendChild(td);
+    });
+    const tdN=document.createElement('td');tr.appendChild(tdN);
+    tfoot.appendChild(tr);
+  });
+}
+
+// ══════════════════════════════════════
+//  BUILD LIVE SCORING
+// ══════════════════════════════════════
+function liveSBtn(did,vendor,score){
+  const cur=liveScore(did,vendor);
+  const btn=document.createElement('button');
+  btn.className='score-btn'+(cur===score?' selected sel-'+score:'');
+  btn.textContent=score;
+  btn.onclick=()=>{
+    const prev=liveScore(did,vendor);
+    const next=prev===score?null:score;
+    setLiveScore(did,vendor,next);
+    const cell=document.getElementById(`lsc-${did}-${vendor.replace(' ','_')}`);
+    if(cell){cell.innerHTML='';cell.appendChild(makeLiveCell(did,vendor))}
+    updateLiveFooter();scheduleSave();updateComparison();
+  };
+  return btn;
+}
+function makeLiveCell(did,vendor){
+  const wrap=document.createElement('div');wrap.className='score-btns';
+  [1,2,3,4,5].forEach(n=>wrap.appendChild(liveSBtn(did,vendor,n)));
+  return wrap;
+}
+function buildLiveTable(){
+  const tbody=document.getElementById('live-body');tbody.innerHTML='';
+  LIVE_DIMS.forEach(d=>{
+    const tr=document.createElement('tr');
+    const tdL=document.createElement('td');tdL.style.fontWeight='500';tdL.style.fontSize='13px';tdL.style.minWidth='160px';tdL.textContent=d.label;tr.appendChild(tdL);
+    const tdT=document.createElement('td');tdT.style.fontSize='12px';tdT.style.color='var(--text2)';tdT.style.minWidth='200px';tdT.style.maxWidth='280px';tdT.textContent=d.test;tr.appendChild(tdT);
+    VENDORS.forEach(v=>{
+      const td=document.createElement('td');td.className='score-cell';
+      td.id=`lsc-${d.id}-${v.replace(' ','_')}`;
+      td.appendChild(makeLiveCell(d.id,v));tr.appendChild(td);
+    });
+    const tdN=document.createElement('td');
+    const ta=document.createElement('textarea');ta.className='note-ta';ta.style.minHeight='48px';
+    ta.placeholder='Notes…';ta.value=D.liveNotes[d.id]||'';
+    ta.addEventListener('input',()=>{D.liveNotes[d.id]=ta.value;scheduleSave()});
+    tdN.appendChild(ta);tr.appendChild(tdN);
+    tbody.appendChild(tr);
+  });
+  updateLiveFooter();
+}
+function updateLiveFooter(){
+  const tfoot=document.getElementById('live-foot');tfoot.innerHTML='';
+  const tr=document.createElement('tr');tr.className='totals-row';
+  const tdL=document.createElement('td');tdL.className='label';tdL.colSpan=2;tdL.textContent='Live avg (1–5)';tr.appendChild(tdL);
+  VENDORS.forEach(v=>{
+    const td=document.createElement('td');td.style.textAlign='center';td.textContent=fmt(calcLive(v));tr.appendChild(td);
+  });
+  const tdN=document.createElement('td');tr.appendChild(tdN);
+  tfoot.appendChild(tr);
+}
+
+// ══════════════════════════════════════
+//  BUILD VENDOR COMPARISON
+// ══════════════════════════════════════
+function buildComparison(){
+  // Weight inputs
+  document.getElementById('w-written').value=D.wWritten;
+  document.getElementById('w-live').value=D.wLive;
+  document.getElementById('w-written').addEventListener('input',e=>{
+    D.wWritten=parseFloat(e.target.value)||0;updateWeightNote();scheduleSave();updateComparison();
+  });
+  document.getElementById('w-live').addEventListener('input',e=>{
+    D.wLive=parseFloat(e.target.value)||0;updateWeightNote();scheduleSave();updateComparison();
+  });
+  updateWeightNote();updateComparison();
+}
+function updateWeightNote(){
+  const sum=(D.wWritten+D.wLive);
+  const ok=Math.abs(sum-1)<0.01;
+  const el=document.getElementById('weight-note');
+  el.textContent=ok?`✓ Weights sum to ${sum.toFixed(2)}`:`⚠ Weights sum to ${sum.toFixed(2)} — should equal 1.00`;
+  el.style.color=ok?'var(--text3)':'var(--no-fg)';
+  document.getElementById('live-weight-display').textContent=Math.round(D.wLive*100)+'%';
+}
+function updateComparison(){
+  const grid=document.getElementById('comparison-grid');grid.innerHTML='';
+  const tbody=document.getElementById('comparison-body');tbody.innerHTML='';
+  VENDORS.forEach(v=>{
+    const w=calcWritten(v);
+    const liveAvg=calcLive(v);
+    const finalGrade=(w.avg!==null||liveAvg!==null)?
+      ((w.avg||0)*D.wWritten+(liveAvg||0)*D.wLive):null;
+
+    // Card
+    const card=document.createElement('div');card.className='vendor-card';
+    const isDeclined=(D.vcStatus[v]||'').toLowerCase()==='declined';
+
+    card.innerHTML=`<div class="vc-name">${v}${isDeclined?'<span class="pri-badge pri-critical">Declined</span>':''}</div>
+      <div class="vc-metric"><span class="vc-metric-label">Written avg</span><span class="vc-metric-value">${fmt(w.avg)}</span></div>
+      <div class="vc-metric"><span class="vc-metric-label">Critical avg</span><span class="vc-metric-value">${fmt(w.critAvg)}</span></div>
+      <div class="vc-metric"><span class="vc-metric-label">Live avg</span><span class="vc-metric-value">${fmt(liveAvg)}</span></div>
+      <div class="vc-metric"><span class="vc-metric-label">Qs scored</span><span class="vc-metric-value">${w.scored}/51</span></div>
+      <div class="vc-final">${fmt(finalGrade)}</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Final grade (${Math.round(D.wWritten*100)}% written + ${Math.round(D.wLive*100)}% live)</div>`;
+
+    // Status input
+    const statusInp=document.createElement('input');statusInp.className='vc-rec-input';
+    statusInp.placeholder='Status (e.g. Shortlisted, Declined…)';statusInp.value=D.vcStatus[v]||'';
+    statusInp.style.marginBottom='8px';
+    statusInp.addEventListener('input',()=>{D.vcStatus[v]=statusInp.value;scheduleSave();updateComparison()});
+    card.appendChild(statusInp);
+    // Rec input
+    const recInp=document.createElement('input');recInp.className='vc-rec-input';
+    recInp.placeholder='Recommendation…';recInp.value=D.vcRec[v]||'';
+    recInp.addEventListener('input',()=>{D.vcRec[v]=recInp.value;scheduleSave()});
+    card.appendChild(recInp);
+    grid.appendChild(card);
+
+    // Table row
+    const tr=document.createElement('tr');
+    const cells=[
+      v,
+      fmt(w.critAvg),
+      fmt(w.avg),
+      fmt(liveAvg),
+      fmt(finalGrade),
+      String(w.scored),
+      D.vcStatus[v]||'—',
+    ];
+    cells.forEach((c,i)=>{
+      const td=document.createElement('td');
+      td.style.fontSize='13px';
+      td.style.textAlign=i>0&&i<6?'center':'left';
+      if(i===4){td.style.fontFamily='DM Mono,monospace';td.style.fontWeight='600';td.style.color='var(--accent)'}
+      td.textContent=c;tr.appendChild(td);
+    });
+    // Rec cell
+    const tdRec=document.createElement('td');
+    const recInp2=document.createElement('input');recInp2.style.cssText='width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:12px;padding:5px 8px;outline:none';
+    recInp2.value=D.vcRec[v]||'';recInp2.placeholder='Recommendation…';
+    recInp2.addEventListener('input',()=>{D.vcRec[v]=recInp2.value;scheduleSave()});
+    tdRec.appendChild(recInp2);tr.appendChild(tdRec);
+    tbody.appendChild(tr);
+  });
+}
+
+// ══════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='comparison')updateComparison();
+  });
+});
+
+// ══════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════
+(async()=>{
+  await loadData();
+  buildTracker();
+  updateProgress();
+  buildTrackerNotes();
+  buildCatFilter();
+  buildScoringTable();
+  buildLiveTable();
+  buildComparison();
+  document.getElementById('loading').style.display='none';
+  document.getElementById('app').style.display='flex';
+})();
+</script>
+</body>
+</html>
